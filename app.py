@@ -5,23 +5,13 @@ from groq import Groq
 from chromadb.utils import embedding_functions
 import chromadb
 
-# For reading files
 import PyPDF2
 from docx import Document
-
-# ==========================================
-# 1. SETUP AND CONFIGURATION
-# ==========================================
-
 st.set_page_config(page_title="Student RAG Project", layout="wide")
 
-# --- API KEY MANAGEMENT ---
-# In the cloud, we use st.secrets. Locally, you can still type it in.
 try:
-    # Try to get key from secrets file (used in deployment)
     api_key = st.secrets["GROQ_API_KEY"]
 except FileNotFoundError:
-    # Fallback for local running
     api_key = st.sidebar.text_input("Enter your Groq API Key", type="password")
     if not api_key:
         st.warning("Please enter your Groq API Key in the sidebar to start.")
@@ -29,22 +19,12 @@ except FileNotFoundError:
 
 client = Groq(api_key=api_key)
 
-# --- DATABASE PERSISTENCE ---
-# This is the crucial part for 24/7 deployment.
-# We save the database to a folder so it doesn't disappear when the app restarts.
 if os.path.exists("/mount/data"):
-    # Path for Streamlit Cloud
     persist_directory = "/mount/data/chroma_db"
 else:
-    # Path for your local computer
     persist_directory = "./chroma_db"
 
 embedding_model_name = "all-MiniLM-L6-v2"
-
-# ==========================================
-# 2. HELPER FUNCTIONS (Reading Files)
-# ==========================================
-
 def read_pdf(file_path):
     text = ""
     try:
@@ -87,26 +67,15 @@ def split_text(text, chunk_size=500, chunk_overlap=50):
         start = end - chunk_overlap
     return chunks
 
-# ==========================================
-# 3. MAIN APP LOGIC
-# ==========================================
-
 st.title("📚 Enterprise Knowledge Base (RAG)")
 st.markdown("Upload your company documents. Once uploaded, they stay saved even if you close the browser.")
 
-# Initialize the Vector DB (Persistent)
-# We use a helper to get or create the client
 @st.cache_resource
 def get_vector_db():
-    # Create the persistent client
-    client = chromadb.PersistentClient(path=persist_directory)
-    
-    # Setup embeddings
+    client = chromadb.PersistentClient(path=persist_directory)    
     embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=embedding_model_name
-    )
-    
-    # Get or create collection
+    )    
     collection = client.get_or_create_collection(
         name="enterprise_kb",
         embedding_function=embed_fn
@@ -114,16 +83,12 @@ def get_vector_db():
     return collection
 
 db_collection = get_vector_db()
-
-# Sidebar for file upload
 st.sidebar.header("1. Upload Documents")
 uploaded_files = st.sidebar.file_uploader(
     "Drag and drop files here", 
     type=["pdf", "txt", "docx"], 
     accept_multiple_files=True
 )
-
-# Button to process files
 if st.sidebar.button("Process Documents"):
     if uploaded_files:
         with st.spinner("Reading and embedding documents..."):
@@ -149,33 +114,20 @@ if st.sidebar.button("Process Documents"):
                     chunks = split_text(text_content)
                     for i, chunk in enumerate(chunks):
                         all_chunks.append(chunk)
-                        all_metadatas.append({"source": file.name, "chunk_id": i})
-            
-            # Add to ChromaDB (This now saves to disk!)
-            if all_chunks:
-                # Delete old data with same source to avoid duplicates (Optional cleanup)
-                # For a simple student project, we just add new data.
-                
+                        all_metadatas.append({"source": file.name, "chunk_id": i})   
+            if all_chunks:                
                 db_collection.add(
                     documents=all_chunks,
                     metadatas=all_metadatas,
                     ids=[f"doc_{i}_{os.urandom(4).hex()}" for i in range(len(all_chunks))]
-                )
-                
+                )                
                 st.sidebar.success(f"Added {len(all_chunks)} chunks to database!")
             else:
                 st.sidebar.error("No text found.")
     else:
         st.sidebar.warning("Upload files first.")
-
-# ==========================================
-# 4. CHAT INTERFACE
-# ==========================================
-
 st.markdown("---")
 st.header("2. Ask a Question")
-
-# Check count
 count = db_collection.count()
 if count == 0:
     st.info("Knowledge base is empty. Please upload documents on the left.")
@@ -199,7 +151,6 @@ if prompt := st.chat_input("Ask about your documents..."):
         full_response = ""
         
         try:
-            # 1. RETRIEVAL
             results = db_collection.query(
                 query_texts=[prompt],
                 n_results=3
@@ -211,11 +162,9 @@ if prompt := st.chat_input("Ask about your documents..."):
             if results['documents'] and results['documents'][0]:
                 for i, doc in enumerate(results['documents'][0]):
                     context_text += f"Chunk {i+1}:\n{doc}\n\n"
-                    # Safe access to metadata
                     if results['metadatas'] and results['metadatas'][0]:
                          sources.add(results['metadatas'][0][i].get('source', 'Unknown'))
 
-            # 2. GENERATION
             system_prompt = "You are a helpful assistant. Answer based ONLY on the context. If unknown, say 'I don't know'."
             user_message = f"Context:\n{context_text}\n\nQuestion: {prompt}"
             
