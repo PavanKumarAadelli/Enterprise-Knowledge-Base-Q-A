@@ -49,7 +49,7 @@ Sample live - [https://enterprise-knowledge-base-q-a-99.streamlit.app/]
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/PavanKumarAadelli/Enterprise-Knowledge-Base-Q-A.git
 cd your-repo-name
 ```
 
