@@ -1,6 +1,7 @@
 streamlit
 groq
-chromadb
+chromadb==0.4.24
 sentence-transformers
 PyPDF2
 python-docx
+protobuf==4.25.1
