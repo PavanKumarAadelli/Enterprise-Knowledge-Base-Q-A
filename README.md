@@ -50,7 +50,7 @@ Sample live - [https://enterprise-knowledge-base-q-a-99.streamlit.app/]
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/PavanKumarAadelli/Enterprise-Knowledge-Base-Q-A.git
-cd your-repo-name
+cd Enterprise-Knowledge-Base-Q-A
 ```
 
 ### 2. Install Dependencies
