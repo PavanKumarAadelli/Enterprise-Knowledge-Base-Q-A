@@ -5,3 +5,4 @@ sentence-transformers
 PyPDF2
 python-docx
 protobuf==4.25.1
+numpy==1.26.4
